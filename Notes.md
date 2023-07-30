@@ -249,11 +249,11 @@ When ssh-ing into a server for the first time, Ansible asks us, whether we want 
 ```
 
 To suppress this interactive part, we have two options:
-- for long living servers, we can add the server's fingerprint to the `~/.ssh/known_hosts` file by manually ssh-ing into into it once; if the server doesn't know our public key yet, two steps are necessary: first, add the server's fingerprint to our `~/.ssh/known_hosts` file by executing `ssh-keyscan -H <server-ip> >> ~/.ssh/known_hosts` and second, add our public key to the server's '~/.ssh/authorized_keys' file by executing `ssh-copy-id root@<server-ip>`
+- for long living servers, we can add the server's fingerprint to the `~/.ssh/known_hosts` file by manually ssh-ing into into it once; if the server doesn't know our public key yet, two steps are necessary: first, add the server's fingerprint to our `~/.ssh/known_hosts` file by executing `ssh-keyscan -H <server-ip> >> ~/.ssh/known_hosts` and second, add our public key to the server's `~/.ssh/authorized_keys` file by executing `ssh-copy-id root@<server-ip>`
 - for ephemeral servers that are dynamically created and destroyed after a short time, it is also possible to disable the whole host key checking; this is done in the ansible configuration file; default locations for this file are `/etc/ansible/ansible.cfg` and `~/.ansible.cfg`; add the foolowing content to `~/.ansible.cfg`:
   ```yaml
-  [defaults]
-  host_key_checking=False
+[defaults]
+host_key_checking=False
   ```
   see [config documentation](https://docs.ansible.com/ansible-core/2.15/reference_appendices/config.html)
 
