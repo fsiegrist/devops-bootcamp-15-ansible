@@ -99,3 +99,89 @@ Alternatives for Ansible are Puppet and Chef. But they use Ruby as their configu
 </details>
 
 *****
+
+<details>
+<summary>Video: 2 - Install Ansible</summary>
+<br />
+
+You can install Ansible either on your local machine or on a remote server. The machine that runs Ansible is called the "Control Node". It manages the target servers. Windows is not supported for the control node.
+
+To install Ansible on a Mac, just execute
+
+```sh
+brew update
+brew install ansible
+```
+
+Ansible is written in Python. So Python must be installed as a prerequisite. If Python is already installed, Ansilbe may be installed using Python's package manager pip:
+
+```python
+pip install ansible
+```
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 3 - Setup Managed Server to Configure with Ansible</summary>
+<br />
+
+In order to have two servers we can configure using Ansible, we create two Droplets on DigitalOcean. So login to your DigitalOcean account and create two Droplets (Ubuntu, Frankfurt, Shared CPU, Regular, 2GB / 1CPU). Use the SSH key created in previous modules. Optionally set the hostnames to 'ubuntu-ansible-1' and 'ubuntu-ansible-2'.
+
+On Linux servers Ansible requires Python to be installed. This is already the case on DigitalOcean Droplets. (On Windows servers PowerShell is required.)
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 4 - Ansible Inventory and Ansible ad-hoc commands</summary>
+<br />
+
+The Ansible Inventory is a file containing data about the remote hosts and how to connect to them:
+- Host IP-address or Host DNS-name
+- SSH Private Key
+- SSH User
+
+```yaml
+209.38.196.102 ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_user=root
+209.38.196.11  ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_user=root
+```
+
+### Grouping Hosts
+To address multiple servers, the hosts may be grouped based on their functionality or geo location etc. SSH key and user can be defined for whole group:
+
+```yaml
+[droplets]
+209.38.196.102
+209.38.196.11
+
+[droplets:vars]
+ansible_ssh_private_key_file=~/.ssh/id_ed25519
+ansible_user=root
+```
+
+You can create groups that track
+- where: datacenter, region
+- what: database servers, web servers, etc.
+- when: which stage e.g. dev, test, prod
+
+Hosts may be added to more than one group.
+
+### Ad-hoc Commands
+Ad-hoc commands are not stored for future uses. They are just a fast way to interact with the managed hosts.
+
+```sh
+# format
+ansible [pattern] -i [inventory-file] -m [module] -a "[module options]"
+
+# examples
+ansible 209.38.196.102 -i ~/.ansible/hosts -m ping 
+ansible droplets -i ~/.ansible/hosts -m ping 
+ansible all -i ~/.ansible/hosts -m ping # "all" is an implicit group containing every host
+```
+
+</details>
+
+*****
