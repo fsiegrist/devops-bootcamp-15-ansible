@@ -235,3 +235,27 @@ Don't forget to terminate the EC2 instances when you have finished these tasks.
 </details>
 
 *****
+
+<details>
+<summary>Video: 6 - Managing Host Key Checking and SSH keys</summary>
+<br />
+
+When ssh-ing into a server for the first time, Ansible asks us, whether we want to accept the connection or not:
+```sh
+# The authenticity of host '209.38.196.102 (209.38.196.102)' can't be established.
+# ED25519 key fingerprint is SHA256:3kgtPoGZ/6t9OOM0RQ47hxiStqFtkPwmTl8aVqHMhHI.
+# This key is not known by any other names
+# Are you sure you want to continue connecting (yes/no/[fingerprint])? 
+```
+
+To suppress this interactive part, we have two options:
+- for long living servers, we can add the server's fingerprint to the '~/.ssh/known_hosts' file by manually ssh-ing into into it once; if the server doesn't know our public key yet, two steps are necessary: first, add the server's fingerprint to our '~/.ssh/known_hosts' file by executing `ssh-keyscan -H <server-ip> >> ~/.ssh/known_hosts` and second, add our public key to the server's '~/.ssh/authorized_keys' file by executing `ssh-copy-id root@<server-ip>`
+- for ephemeral servers that are dynamically created and destroyed after a short time, it is also possible to disable the whole host key checking; this is done in the ansible configuration file; default locations for this file are `/etc/ansible/ansible.cfg` and `~/.ansible.cfg`; add the foolowing content to `~/.ansible.cfg`:
+  ```yaml
+  [defaults]
+  host_key_checking=False
+  ```
+  see [config documentation](https://docs.ansible.com/ansible-core/2.15/reference_appendices/config.html)
+</details>
+
+*****
