@@ -119,6 +119,8 @@ Ansible is written in Python. So Python must be installed as a prerequisite. If 
 pip install ansible
 ```
 
+See also: [Installation Guide](https://docs.ansible.com/ansible/latest/installation_guide/intro_installation.html)
+
 </details>
 
 *****
@@ -150,7 +152,7 @@ The Ansible Inventory is a file containing data about the remote hosts and how t
 ```
 
 ### Grouping Hosts
-To address multiple servers, the hosts may be grouped based on their functionality or geo location etc. SSH key and user can be defined for whole group:
+To address multiple servers, the hosts may be grouped based on their functionality or geo location etc. SSH key and user can be defined for whole groups:
 
 ```yaml
 [droplets]
@@ -181,6 +183,54 @@ ansible 209.38.196.102 -i ~/.ansible/hosts -m ping
 ansible droplets -i ~/.ansible/hosts -m ping 
 ansible all -i ~/.ansible/hosts -m ping # "all" is an implicit group containing every host
 ```
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 5 - Configure AWS EC2 server with Ansible</summary>
+<br />
+
+Login to you AWS Management Console account and create two EC2 instances. Add an inbound rule to the used security group allowing SSH connections from your local machine's IP address. As soon as both instances have been fully initialized, manually ssh into both instances to add their fingerprints to the known_hosts file. Then add an 'ec2' group with their public hostnames to the ansible inventory file:
+
+```yaml
+[ec2]
+ec2-18-192-42-239.eu-central-1.compute.amazonaws.com
+ec2-18-184-157-86.eu-central-1.compute.amazonaws.com
+
+[ec2:vars]
+ansible_ssh_private_key_file=~/.ssh/ec2-key-pair.pem
+ansible_user=ec2-user
+```
+
+Now execute the ping command to test the configuration:
+```sh
+ansible ec2 -i ~/.ansible/hosts -m ping
+# [WARNING]: Platform linux on host ec2-18-184-157-86.eu-central-1.compute.amazonaws.com is using the discovered Python interpreter at /usr/bin/python3.9, but future installation of another Python interpreter could change the meaning of that path. 
+# See https://docs.ansible.com/ansible-core/2.15/reference_appendices/interpreter_discovery.html for more information.
+# ec2-18-184-157-86.eu-central-1.compute.amazonaws.com | SUCCESS => {
+#     "ansible_facts": {
+#         "discovered_interpreter_python": "/usr/bin/python3.9"
+#     },
+#     "changed": false,
+ #    "ping": "pong"
+# }
+# ...
+```
+
+To get rid of the warning message we open the referenced [documentation page](https://docs.ansible.com/ansible-core/2.15/reference_appendices/interpreter_discovery.html) and learn:
+
+To control the discovery behavior:
+- for individual hosts and groups, use the ansible_python_interpreter inventory variable
+- globally, use the interpreter_python key in the [defaults] section of ansible.cfg
+
+So we add the following line to the [ec2:vars] section of the Ansible inventory file:
+```yaml
+ansible_python_interpreter=/usr/bin/python3.9
+```
+
+Don't forget to terminate the EC2 instances when you have finished these tasks.
 
 </details>
 
