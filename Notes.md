@@ -365,3 +365,39 @@ To stop and uninstall nginx, execute the following playbook:
 </details>
 
 *****
+
+<details>
+<summary>Video: 8 - Ansible Modules</summary>
+<br />
+
+Modules (also referred to as "task plugins") are the main building blocks of Ansible playbooks. Ansible executes a module usually on the remote server and collects return values.
+
+Reference the [complete module index](https://docs.ansible.com/ansible/latest/collections/index_module.html) or the [module index grouped by category](https://docs.ansible.com/ansible/2.9/modules/modules_by_category.html), where you find descriptions on how to use the module and which parameters you can configure with what values.
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 9 - Collections in Ansible</summary>
+<br />
+
+Until Ansible version 2.9 all modules were included in a single repository and packaged together with the Ansible core in one `ansible` package. As Ansible grew and thousands of modules have been added, in Ansible 2.10 and later the modules and plugins have been separated from the core and moved to various "collections" in different repositories. When installing Ansible now, two packages get installed: `ansible-base` containing the core functionality and `ansible` containing all the modules and plugins.
+
+Collections are a packaging format for bundling and distributing Ansible content like playbooks, modules, plugins, etc. E.g. a Docker collection may contain playbooks, modules and plugins needed to work with Docker containers.
+
+In the built-in collection [ansible.builtin](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/index.html#plugins-in-ansible-builtin) you'll find the `apt` module, the `service` module or the `gather_facts` we used or mentioned in a previous video.
+
+Collections, which are not built-in can be installed from [Ansible Galaxy](https://galaxy.ansible.com/) which is an online hub for finding and sharing Ansible community content (comparable to Terrform registry, PyPI etc.).
+
+It also provides a CLI utility to list and install collections:
+```sh
+ansible-galaxy collection list
+ansible-galaxy collection install amazon.aws
+```
+
+ If you have a large Ansible project with lots of playbooks, modules and plugins, you can also [create your own collection](https://docs.ansible.com/ansible/latest/dev_guide/developing_collections.html) bundling all these components and making it easier to share it with other developers or teams.
+
+</details>
+
+*****
