@@ -401,3 +401,21 @@ ansible-galaxy collection install amazon.aws
 </details>
 
 *****
+
+<details>
+<summary>Video: 10, 11, 12 - Project: Deploy Nodejs application</summary>
+<br />
+
+In the first demo project we are going to deploy a Nodejs application on a DigitalOcean droplet using Ansible. This includes the following steps:
+- create a droplet on DigitalOcean
+- write an Ansible playbook to
+  - install node and npm on the droplet
+  - copy the nodejs artifact and unpack it
+  - start the application
+  - verify that the application is running successfully
+
+See [demo project 1](./demo-projects/1-nodejs-application-deployment/).
+
+</details>
+
+*****
