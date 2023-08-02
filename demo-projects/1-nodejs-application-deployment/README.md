@@ -128,3 +128,66 @@ Note: Instead of copying a local file to the remote server and then unarchiving 
 ```
 
 This time the copied tar file will be removed after unpacking it.
+
+**Start the Application**\
+Check the documentation for the following modules:
+- [community.general.npm](https://docs.ansible.com/ansible/latest/collections/community/general/npm_module.html)
+- [command](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/command_module.html)
+
+Also check the documentation for [async playbook execution](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_async.html)
+
+Add the following tasks to the "Deploy nodejs application" play:
+```yaml
+    - name: Install dependencies
+      npm:
+        path: /root/package
+    - name: Start application
+      command: node /root/package/app/server
+      async: 1000
+      poll: 0
+```
+
+Execute the playbook, ssh into the droplet and make sure there is a `node_modules` directory in `/root/package` and that the node server is running (`ps aux | grep node`).
+
+**Ensure App is Running**\
+Check the documentation for the following modules:
+- [shell](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/shell_module.html)
+- [debug](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/debug_module.html)
+
+Add the following tasks to the "Deploy nodejs application" play:
+```yaml
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status # register the return value of the module into a variable
+    - debug: msg={{ app_status.stdout_lines }}
+```
+
+Execute the playbook:
+
+```sh
+ansible-playbook deploy-node-app.yaml
+# PLAY [Install node and npm] ********************************************************************
+# 
+# ...
+# 
+# TASK [Install dependencies] ********************************************************************
+# ok: [134.209.244.217]
+# 
+# TASK [Start application] ***********************************************************************
+# changed: [134.209.244.217]
+# 
+# TASK [Ensure app is running] *******************************************************************
+# changed: [134.209.244.217]
+# 
+# TASK [debug] ***********************************************************************************
+# ok: [134.209.244.217] => {
+#     "msg": [
+#         "root       35334 41.0  0.5 599400 47208 ?        Sl   20:50   0:00 node /root/package/app/server",
+#         "root       35347  0.0  0.0   2888   980 pts/1    S+   20:50   0:00 /bin/sh -c ps aux | grep node",
+#         "root       35349  0.0  0.0   7004  2116 pts/1    S+   20:50   0:00 grep node"
+#     ]
+# }
+# 
+# PLAY RECAP *************************************************************************************
+# 134.209.244.217            : ok=9    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  
+```

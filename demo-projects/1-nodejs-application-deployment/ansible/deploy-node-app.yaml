@@ -19,3 +19,14 @@
       unarchive:
         src: ../nodejs-app-1.0.0.tgz
         dest: /root/
+    - name: Install dependencies
+      npm:
+        path: /root/package
+    - name: Start application
+      command: node /root/package/app/server
+      async: 1000
+      poll: 0
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status # register the return value of the module into a variable
+    - debug: msg={{ app_status.stdout_lines }}
