@@ -419,3 +419,95 @@ See [demo project 1](./demo-projects/1-nodejs-application-deployment/).
 </details>
 
 *****
+
+<details>
+<summary>Video: 13 - Ansible Variables - make your Playbook customizable</summary>
+<br />
+
+Variables can be used to parameterize your Playbook to make it customizable so we can use the same Ansbile script for different environments, by substituting some dynamic values.
+
+See the [documentation](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html).
+
+### Registered Variables
+With "register" you can create variables from the output of an Ansible task. This variable can be used in any later task in your Play.
+
+```yaml
+  tasks:
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status # register the return value of the shell module into a variable
+    - name: Print out the result
+      debug: msg={{ app_status.stdout_lines }} # print the stdout of the shell command (which is part of the shell module's return value)
+```
+
+The variables can be referenced using double curly braces. If the curly braces directly follow the attribute, you must quote the whole expression to create valid YAML syntax:
+
+```yaml
+  tasks:
+    - name: Unpack the nodejs file
+      unarchive:
+        src: "{{ node_file_location }}"
+```
+
+### Naming of variables
+- Wrong: Playbook keywords, such as environment
+- Valid: Letters, numbers and underscores
+- Should always start with a letter
+- Wrong: linux-name, linux name, linux.name or 12
+- Valid: linux_name
+
+### Variables Defined in a Playbook
+Variables can be definied directly within the playbook:
+```yaml
+- name: Deploy nodejs application
+  hosts: 134.209.244.217
+  become: yes
+  become_user: demo
+  vars:                       # <-- variable definition
+    - version: 1.0.0          # <--
+    - user_home: /home/demo   # <--
+  tasks:
+    - name: Copy application tar file to the server and unpack it there
+      unarchive:
+        src: ../nodejs-app-{{ version }}.tgz            # <-- variable usage
+        dest: {{ user_home }}/                          # <--
+    - name: Install dependencies
+      npm:
+        path: {{ user_home }}/package                   # <--
+    - name: Start application
+      command: node {{ user_home }}/package/app/server  # <--
+      async: 1000
+      poll: 0
+```
+
+### Passing Variables on the Command Line
+To make the Playbook configurable, you don't define the variables within the Playbook, but rather pass them in from the command line:
+```sh
+ansible-playbook playbook.yaml -e "version=1.0.0 user_home=/home/demo"
+```
+
+The long version of `-e` is `--extra-vars`.
+
+### External Varibale File
+Setting the variable values on the command line gets very inconvenient when the number of variables increases. Ansible also supports the usage of a separate file where all the variables are defined.
+
+_playbook.yaml_
+```yaml
+```yaml
+- name: Deploy nodejs application
+  hosts: 134.209.244.217
+  become: yes
+  become_user: demo
+  vars_files:                 # <--
+    - project-vars            # <--
+```
+
+_project-vars_
+```yaml
+version: 1.0.0
+user_home: /home/demo
+```
+
+</details>
+
+*****
