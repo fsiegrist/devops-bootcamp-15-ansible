@@ -12,18 +12,29 @@
           - nodejs
           - npm
 
+- name: Create new Linux user for the node app
+  hosts: 134.209.244.217
+  tasks:
+    - name: Create Linux user
+      user:
+        name: demo
+        comment: Demo user for deploying and running the node app
+        group: admin
+
 - name: Deploy nodejs application
   hosts: 134.209.244.217
+  become: yes
+  become_user: demo
   tasks:
     - name: Copy application tar file to the server and unpack it there
       unarchive:
         src: ../nodejs-app-1.0.0.tgz
-        dest: /root/
+        dest: /home/demo/
     - name: Install dependencies
       npm:
-        path: /root/package
+        path: /home/demo/package
     - name: Start application
-      command: node /root/package/app/server
+      command: node /home/demo/package/app/server
       async: 1000
       poll: 0
     - name: Ensure app is running

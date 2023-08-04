@@ -191,3 +191,96 @@ ansible-playbook deploy-node-app.yaml
 # PLAY RECAP *************************************************************************************
 # 134.209.244.217            : ok=9    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0  
 ```
+
+**Executing tasks with a different user**\
+For security reasons it would be better to execute the tasks with an app specific user or a team user instead of the root user. So we have to create a user and then run the application with this user.
+
+Check the documentation for the following module:
+- [user](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/user_module.html)
+
+We can leave the "Install node and npm" play unchanged, because the tools may be installed with the root user. But right after this play we add a new play as follows:
+
+```yaml
+- name: Create new Linux user for the node app
+  hosts: 134.209.244.217
+  tasks:
+    - name: Create Linux user
+      user:
+        name: demo
+        comment: Demo user for deploying and running the node app
+        group: admin
+```
+
+Now adjust the tasks in the "Deploy nodejs application" play to use this new user (read the documentation on [privilege escalation](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_privilege_escalation.html) to understand the usage of `become` and `become_user`):
+
+```yaml
+- name: Deploy nodejs application
+  hosts: 134.209.244.217
+  become: yes        # <--
+  become_user: demo  # <--
+  tasks:
+    - name: Copy application tar file to the server and unpack it there
+      unarchive:
+        src: ../nodejs-app-1.0.0.tgz
+        dest: /home/demo/                           # <--
+    - name: Install dependencies
+      npm:
+        path: /home/demo/package                    # <--
+    - name: Start application
+      command: node /home/demo/package/app/server   # <--
+      async: 1000
+      poll: 0
+    - name: Ensure app is running
+      shell: ps aux | grep node
+      register: app_status # register the return value of the module into a variable
+    - debug: msg={{ app_status.stdout_lines }}
+```
+
+Execute the playbook:
+
+```sh
+ansible-playbook deploy-node-app.yaml
+# PLAY [Install node and npm] ********************************************************************
+#
+# ...
+# 
+# PLAY [Create new Linux user for the node app] **************************************************
+# 
+# TASK [Gathering Facts] *************************************************************************
+# ok: [134.209.244.217]
+# 
+# TASK [Create Linux user] ***********************************************************************
+# changed: [134.209.244.217]
+# 
+# PLAY [Deploy nodejs application] ***************************************************************
+# 
+# TASK [Gathering Facts] *************************************************************************
+# [WARNING]: Module remote_tmp /home/demo/.ansible/tmp did not exist and was created with a mode
+# of 0700, this may cause issues when running as another user. To avoid this, create the
+# remote_tmp dir with the correct permissions manually
+# ok: [134.209.244.217]
+# 
+# TASK [Copy application tar file to the server and unpack it there] *****************************
+# changed: [134.209.244.217]
+# 
+# TASK [Install dependencies] ********************************************************************
+# changed: [134.209.244.217]
+# 
+# TASK [Start application] ***********************************************************************
+# changed: [134.209.244.217]
+# 
+# TASK [Ensure app is running] *******************************************************************
+# changed: [134.209.244.217]
+# 
+# TASK [debug] ***********************************************************************************
+# ok: [134.209.244.217] => {
+#     "msg": [
+#         "demo       56415 41.0  0.5 598848 46964 ?        Sl   17:32   0:00 node /home/demo/package/app/server",
+#         "demo       56435  0.0  0.0   2888   968 pts/1    S+   17:32   0:00 /bin/sh -c ps aux | grep node",
+#         "demo       56437  0.0  0.0   7004  2192 pts/1    R+   17:32   0:00 grep node"
+#     ]
+# }
+# 
+# PLAY RECAP *************************************************************************************
+# 134.209.244.217            : ok=11   changed=6    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
