@@ -488,7 +488,7 @@ ansible-playbook playbook.yaml -e "version=1.0.0 user_home=/home/demo"
 
 The long version of `-e` is `--extra-vars`.
 
-### External Varibale File
+### External Variables File
 Setting the variable values on the command line gets very inconvenient when the number of variables increases. Ansible also supports the usage of a separate file where all the variables are defined.
 
 _playbook.yaml_
