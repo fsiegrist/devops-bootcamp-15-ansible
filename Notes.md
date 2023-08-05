@@ -411,7 +411,8 @@ In the first demo project we are going to deploy a Nodejs application on a Digit
 - write an Ansible playbook to
   - install node and npm on the droplet
   - copy the nodejs artifact and unpack it
-  - start the application
+  - create an application specific Linux user
+  - start the application with this user
   - verify that the application is running successfully
 
 See [demo project 1](./demo-projects/1-nodejs-application-deployment/).
@@ -507,6 +508,25 @@ _project-vars_
 version: 1.0.0
 user_home: /home/demo
 ```
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 14, 15 - Project: Deploy Nexus</summary>
+<br />
+
+In the second demo project we are going to deploy Nexus on a DigitalOcean droplet using Ansible. This includes the following steps:
+- create a droplet on DigitalOcean
+- write an Ansible playbook to
+  - install Java and net-tools on the droplet
+  - download and unpack Nexus installer
+  - create a nexus user to own nexus folders
+  - start Nexus with this user
+  - verify that Nexus is running successfully
+
+See [demo project 2](./demo-projects/2-nexus-deployment/).
 
 </details>
 

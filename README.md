@@ -10,3 +10,4 @@ It also containes [exercises](./exercises/Exercises.md) for this module.
 ### Demo Projects
 And finally it contains the following demo projects:
 - [Node.js application deployment](./demo-projects/1-nodejs-application-deployment/)
+- [Nexus deployment](./demo-projects/2-nexus-deployment/)
