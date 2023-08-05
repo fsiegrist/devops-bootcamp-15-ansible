@@ -16,7 +16,7 @@ Automate Nexus deployment
 
 
 #### Steps to create a server on DigitalOcean
-Login to your account on [DigitalOcean](https://cloud.digitalocean.com/login) and create a new Droplet (Frankfurt, Ubuntu, Shared CPU, Regular, 1GB / 1CPU). Use the existing SSH key and name it 'ubuntu-ansible-demo-2'. Copy the IP address of the new droplet (134.122.74.168).
+Login to your account on [DigitalOcean](https://cloud.digitalocean.com/login) and create a new Droplet (Frankfurt, Ubuntu, Shared CPU, Regular, 4GB / 2CPU). Use the existing SSH key and name it 'ubuntu-ansible-demo-2'. Copy the IP address of the new droplet (104.248.17.245).
 
 
 #### Steps to write an Ansible Playbook that deploys Nexus
@@ -31,7 +31,8 @@ Login to your account on [DigitalOcean](https://cloud.digitalocean.com/login) an
   ```
 - In the same folder create a file called `hosts` with the following content:
   ```
-  134.122.74.168 ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_user=root
+  [nexus_server]
+  104.248.17.245 ansible_ssh_private_key_file=~/.ssh/id_ed25519 ansible_user=root
   ```
 - Finally create an empty playbook file called `deploy-nexus.yaml`
 
@@ -70,7 +71,7 @@ netstat -tlnp # shows that the process with the nexus PID is listening on port 8
 Add the following play to the playbook 'deploy-nexus.yaml':
 ```yaml
 - name: Install Java and net-tools
-  hosts: 134.122.74.168
+  hosts: nexus_server
   tasks:
     - name: Update apt repo and cache
       apt:
@@ -93,10 +94,13 @@ Also check the documentation of [conditionals](https://docs.ansible.com/ansible/
 
 Add the following play to the playbook 'deploy-nexus.yaml':
 ```yaml
-
 - name: Download and unpack Nexus installer
-  hosts: 134.122.74.168
+  hosts: nexus_server
   tasks:
+    - name: Check nexus folder stats
+      stat:
+        path: /opt/nexus
+      register: stat_result
     - name: Download Nexus
       get_url:
         url: https://download.sonatype.com/nexus/3/latest-unix.tar.gz
@@ -107,18 +111,101 @@ Add the following play to the playbook 'deploy-nexus.yaml':
         src: "{{ download_result.dest }}" # dest = e.g. '/opt/nexus-3.58.1-02-unix.tar.gz'
         dest: /opt/
         remote_src: yes
+      when: not stat_result.stat.exists # conditional task execution 
     - name: Find nexus folder
       find:
         paths: /opt
         pattern: "nexus-*"
         file_type: directory
       register: find_result
-    - name: Check nexus folder stats
-      stat:
-        path: /opt/nexus
-      register: stat_result
     - name: Rename nexus folder
       shell: mv {{ find_result.files[0].path }} /opt/nexus # find_result.files[0].path = e.g. '/opt/nexus-3.58.1-02'
-      when: not stat_result.stat.exists # conditional task execution
-      
+      when: not stat_result.stat.exists # conditional task execution   
+```
+
+**Create nexus user to own nexus folders**\
+Check the documentation for the following modules:
+- [group](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/group_module.html)
+- [file](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/file_module.html)
+
+Now add the following play to the playbook 'deploy-nexus.yaml':
+```yaml
+- name: Create nexus user to own nexus folders
+  hosts: nexus_server
+  tasks:
+    - name: Ensure group nexus exists
+      group:
+        name: nexus
+        state: present
+    - name: Create user nexus
+      user:
+        name: nexus
+        group: nexus
+    - name: Make nexus user owner of nexus folder
+      file:
+        path: /opt/nexus
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+    - name: Make nexus user owner of sonatype-work folder
+      file:
+        path: /opt/sonatype-work
+        state: directory
+        owner: nexus
+        group: nexus
+        recurse: yes
+```
+
+**Start Nexus with nexus user**\
+Check the documentation for the following modules:
+- [blockinfile](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/blockinfile_module.html)
+- [lineinfile](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/lineinfile_module.html)
+
+Now add the following play to the playbook 'deploy-nexus.yaml':
+```yaml
+- name: Start Nexus with nexus user
+  hosts: nexus_server
+  become: yes
+  become_user: nexus
+  tasks:
+    - name: Set run_as_user nexus
+      # blockinfile: # add a block to the content of a file
+      #   path: /opt/nexus/bin/nexus.rc
+      #   block: |
+      #     run_as_user="nexus"
+      lineinfile: # replace a line in the file with another line
+        path: /opt/nexus/bin/nexus.rc
+        regexp: '^#run_as_user=""'
+        line: run_as_user="nexus"
+    - name: Start nexus
+      command: /opt/nexus/bin/nexus start
+```
+
+**Verify Nexus is running**\
+Check the documentation for the following modules:
+- [pause](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/pause_module.html)
+- [wait_for](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/wait_for_module.html)
+
+Now add the following play to the playbook 'deploy-nexus.yaml':
+```yaml
+- name: Verify Nexus is running
+  hosts: nexus_server
+  tasks:
+    - name: Check with ps
+      shell: ps aux | grep nexus
+      register: ps_result
+    - debug: msg={{ ps_result.stdout_lines }}
+    # - name: Wait for 1 minute
+    #   pause:
+    #     minutes: 1
+    - name: Wait for port 8081 to get opened
+      wait_for:
+        port: 8081
+        delay: 15
+        timeout: 120
+    - name: Check with netstat
+      shell: netstat -plnt
+      register: netstat_result
+    - debug: msg={{ netstat_result.stdout_lines }}
 ```
