@@ -15,7 +15,7 @@ Automate Node.js application deployment
 
 
 #### Steps to create a server on DigitalOcean
-Login to you DigitalOcean account and create a new droplet (Frankfurt, Ubuntu, Shared CPU, Regular, 1GB / 1CPU). Use the existing SSH key and name it 'ubuntu-ansible-demo-1'. Copy the IP address of the new droplet (134.209.244.217).
+Login to your account on [DigitalOcean](https://cloud.digitalocean.com/login) and create a new Droplet (Frankfurt, Ubuntu, Shared CPU, Regular, 1GB / 1CPU). Use the existing SSH key and name it 'ubuntu-ansible-demo-1'. Copy the IP address of the new droplet (134.209.244.217).
 
 
 #### Steps to write an Ansible Playbook that deploys a NodeJS application
@@ -63,8 +63,8 @@ Add the following content to the playbook 'deploy-node-app.yaml':
 Clone the Git repository containing the sample [NodeJS application](https://gitlab.com/devops-bootcamp3/simple-nodejs). There you'll find a `nodejs-app-1.0.0.tgz` file. If not, execute `npm pack` to create it.
 
 Check the documentation for the following modules:
-- [copy](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/copy_module.html#ansible-collections-ansible-builtin-copy-module)
-- [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html#ansible-collections-ansible-builtin-unarchive-module)
+- [copy](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/copy_module.html)
+- [unarchive](https://docs.ansible.com/ansible/latest/collections/ansible/builtin/unarchive_module.html)
 
 Add the following content to the playbook 'deploy-node-app.yaml':
 ```yaml
