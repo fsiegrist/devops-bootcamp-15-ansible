@@ -531,3 +531,40 @@ See [demo project 2](./demo-projects/2-nexus-deployment/).
 </details>
 
 *****
+
+<details>
+<summary>Video: 16 - Ansible Configuration - Default Inventory File</summary>
+<br />
+
+As Ansible is an "Infrastructure as Code" tool, its playbooks, inventory files, configuration files etc. should be checked in to a Git repository.
+
+### Configure Inventory Default Location
+Ansible supports several sources for configuring its behavior, including an ini file named `ansible.cfg`. You can configure the file globally or for each project, by creating ansible.cfg file in the project. Within this configuration file you can specify the path to the inventory like this:
+
+```yaml
+[defaults]
+inventory=./hosts
+```
+
+See [Ansible Configuration Settings](https://docs.ansible.com/ansible/latest/reference_appendices/config.html)
+
+</details>
+
+*****
+
+<details>
+<summary>Video: 17, 18 - Project: Run Docker applications</summary>
+<br />
+
+In the third demo project we are going to run a Docker container on an AWS EC2 instance using Ansible. This includes the following steps:
+- create an EC2 instance on AWS
+- write an Ansible playbook to
+  - install Docker and Docker Compose on the EC2 instance
+  - copy a docker-compose file onto the EC2 instance
+  - start the Docker containers specified in this docker-compose file
+
+See [demo project 3](./demo-projects/3-run-docker-applications/).
+
+</details>
+
+****

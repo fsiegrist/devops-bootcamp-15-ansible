@@ -1,0 +1,41 @@
+- name: Install Docker
+  hosts: docker_server
+  become: yes
+  become_user: root  # could be omitted since it is the default as soon as 'become' is enabled
+  tasks:
+    - name: Ensure Docker is installed
+      yum:
+        name: docker
+        update_cache: yes
+        state: present
+
+- name: Intall Docker Compose
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Intall Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-Linux-x86_64
+        dest: /usr/local/bin/docker-compose
+        mode: +x
+
+- name: Start Docker
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Ensure Docker daemon is started
+      systemd:
+        name: docker
+        state: started
+
+- name: Add ec2-user to docker group
+  hosts: docker_server
+  become: yes
+  tasks:
+    - name: Add ec2-user to docker group
+      user:
+        name: ec2-user
+        groups: docker
+        append: yes
+    - name: Reset ssh connection to allow user changes to affect 'current login user'
+      meta: reset_connection

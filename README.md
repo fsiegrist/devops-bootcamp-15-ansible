@@ -11,3 +11,4 @@ It also containes [exercises](./exercises/Exercises.md) for this module.
 And finally it contains the following demo projects:
 - [Node.js application deployment](./demo-projects/1-nodejs-application-deployment/)
 - [Nexus deployment](./demo-projects/2-nexus-deployment/)
+- [Run Docker applications](./demo-projects/3-run-docker-applications/)
