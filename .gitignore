@@ -21,3 +21,5 @@ terraform.rc
 
 # Ignore crash logs
 crash.log
+
+**/ansible/project-vars
