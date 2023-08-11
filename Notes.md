@@ -328,7 +328,7 @@ ansible-playbook simple-playbook.yaml
 # 209.38.196.11              : ok=3    changed=1    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
 ```
 
-The task "Gathering Facts" is part of the "Gather Facts" module of Ansible, which is automatically called by playbooks to gather useful variables about remote hosts, that you can use in the playbooks. So Ansible provides many facts about the system automatically.
+The task "Gathering Facts" is part of the "Gather Facts" module of Ansible, which is automatically called by playbooks to gather useful variables about remote hosts, that you can use in the playbooks. So Ansible provides many facts about the system automatically. (If you want to suppress this step for a play, you can add `gather_facts: no` before the `tasks`.)
 
 The "RECAP" play is also called automatically to display a summary of the things that have been done on the remote servers.
 
@@ -395,6 +395,8 @@ It also provides a CLI utility to list and install collections:
 ansible-galaxy collection list
 ansible-galaxy collection install amazon.aws
 ```
+
+When using modules of the built-in collection, it is not necessary to specify the fully qualified name (`<namespace>.<collection>.<module>`), e.g. `apt` instead of `ansible.builtin.apt`. 
 
  If you have a large Ansible project with lots of playbooks, modules and plugins, you can also [create your own collection](https://docs.ansible.com/ansible/latest/dev_guide/developing_collections.html) bundling all these components and making it easier to share it with other developers or teams.
 
