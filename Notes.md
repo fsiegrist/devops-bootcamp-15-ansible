@@ -570,3 +570,17 @@ See [demo project 3](./demo-projects/3-run-docker-applications/).
 </details>
 
 ****
+
+<details>
+<summary>Video: 19 - Project: Terraform & Ansible</summary>
+<br />
+
+In the third demo project we provisioned an EC2 instance using Terraform and then switched to Ansible to configure this instance and run a Docker container on it. But we had to manually copy the IP address of the EC2 instance from the output of the Terraform execution and paste it into the Ansible inventory file. 
+
+In the fourth demo project we want to eliminate this manual step and integrate the execution of the Ansible Playbook right in the Terraform configuration file.
+
+See [demo project 4](./demo-projects/4-ansible-integration-in-terraform/).
+
+</details>
+
+****
