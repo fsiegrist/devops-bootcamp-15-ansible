@@ -18,6 +18,7 @@ variable subnet_cidr_block {}
 variable my_ip {}
 variable instance_type {}
 variable public_key_location {}
+variable private_key_location {}
 
 resource "aws_vpc" "myapp-vpc" {
     cidr_block = var.vpc_cidr_block
@@ -115,6 +116,11 @@ resource "aws_instance" "myapp-server" {
 
     tags = {
         Name = "${var.env_prefix}-server"
+    }
+
+    provisioner "local-exec" {
+        working_dir = "../ansible/"
+        command = "ansible-playbook --inventory ${self.public_ip}, --private-key ${var.private_key_location} --user ec2-user deploy-docker.yaml"
     }
 }
 
