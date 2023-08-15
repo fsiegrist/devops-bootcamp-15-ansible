@@ -584,3 +584,17 @@ See [demo project 4](./demo-projects/4-ansible-integration-in-terraform/).
 </details>
 
 ****
+
+<details>
+<summary>Video: 20 - Project: Dynamic Inventory for EC2 Servers</summary>
+<br />
+
+If we have to manage an inventory, which fluctuates over time (i.e. hosts spinning up and shutting down all the time) for example because auto-scaling is used to accomodate for business demands, it isn't practical to hard-code the IP addresses of the servers in a hosts file. Instead we need a way to dynamically configure these IP addresses.
+
+In the fifth demo project we are going to provision three EC2 instances using Terraform and then hand over to Ansible to connect to these instances and configure them without hard-coding their IP addresses.
+
+See [demo project 5](./demo-projects/5-dynamic-inventory/).
+
+</details>
+
+****
