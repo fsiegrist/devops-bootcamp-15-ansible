@@ -1,5 +1,5 @@
 - name: Wait until EC2 instance accepts SSH connections
-  hosts: all
+  hosts: aws_ec2
   gather_facts: no
   tasks:
     - name: Ensure ssh port is open
@@ -14,7 +14,7 @@
         ansible_python_interpreter: /opt/homebrew/bin/python3
 
 - name: Install Docker
-  hosts: all
+  hosts: aws_ec2
   become: yes
   become_user: root  # could be omitted since it is the default as soon as 'become' is enabled
   tasks:
@@ -25,7 +25,7 @@
         state: present
 
 - name: Install Docker Compose
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks:
     - name: Get architecture of remote machine
@@ -38,7 +38,7 @@
         mode: +x
 
 - name: Start Docker
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks:
     - name: Ensure Docker daemon is started
@@ -47,7 +47,7 @@
         state: started
 
 - name: Add ec2-user to docker group
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks:
     - name: Add ec2-user to docker group
@@ -59,7 +59,7 @@
       meta: reset_connection
 
 - name: Install pip3
-  hosts: all
+  hosts: aws_ec2
   become: yes
   tasks:
     - name: Ensure pip3 is installed
@@ -69,7 +69,7 @@
         state: present
 
 - name: Install required Python modules
-  hosts: all
+  hosts: aws_ec2
   tasks:
     - name: Install Python modules 'docker' and 'docker-compose'
       pip:
@@ -78,7 +78,7 @@
           - docker-compose
 
 - name: Start Docker containers
-  hosts: all
+  hosts: aws_ec2
   # use a variables file holding the password for Docker login
   vars_files:
     - project-vars
