@@ -598,3 +598,15 @@ See [demo project 5](./demo-projects/5-dynamic-inventory/).
 </details>
 
 ****
+
+<details>
+<summary>Video: 21 - Project: Deploying Application in K8s</summary>
+<br />
+
+In this sixth demo project we are going to provision a Kubernetes cluster on AWS using the Terraform configuration file created in the Terraform module. We then use Ansible to connect to the EKS cluster and deploy a Deployment and a Service component.
+
+See [demo project 6](./demo-projects/6-deploy-application-in-k8s/).
+
+</details>
+
+****

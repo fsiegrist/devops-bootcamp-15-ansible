@@ -14,3 +14,4 @@ And finally it contains the following demo projects:
 - [Run Docker applications](./demo-projects/3-run-docker-applications/)
 - [Ansible & Teraform](./demo-projects/4-ansible-integration-in-terraform/)
 - [Configure Dynamic Inventory](./demo-projects/5-dynamic-inventory/)
+- [Automate Kubernetes Deployment](./demo-projects/6-deploy-application-in-k8s/)
