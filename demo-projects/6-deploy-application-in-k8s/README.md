@@ -90,7 +90,7 @@ Now add the following content to the playbook:
         state: present
 ```
 
-The k8s module use the settings in the kubeconfig to directly connect to the k8s cluster and execute kubectl commands there. That's why we don't have to configure the IP address of the k8s cluster in an inventory. To create a kubeconfig file in `~/.kube`, execute the following aws cli commands:
+The k8s module uses the settings in the kubeconfig to directly connect to the k8s cluster and execute kubectl commands there. That's why we don't have to configure the IP address of the k8s cluster in an inventory. To create a kubeconfig file in `~/.kube`, execute the following aws cli commands:
 
 ```sh
 # make sure your aws configuration is set to the region of the EKS cluster
@@ -188,6 +188,6 @@ kubectl get svc -n ns-myapp
 
 Open the browser and navigate to 'http://ab9795411453644c4b1f3cf46d5f6a05-841880191.eu-central-1.elb.amazonaws.com' to see the application.
 
-To undeploy the compopnents, change the state `present` in the playbook to `absent`.
+To undeploy the components, change the state `present` in the playbook to `absent`.
 
 Don't forget to destroy the cluster using terraform when you're done.
