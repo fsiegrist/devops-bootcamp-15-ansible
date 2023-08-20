@@ -610,3 +610,15 @@ See [demo project 6](./demo-projects/6-deploy-application-in-k8s/).
 </details>
 
 ****
+
+<details>
+<summary>Video: 22, 23, 24 - Project: Run Ansible from Jenkins Pipeline</summary>
+<br />
+
+In this seventh demo project we are going to see how to execute an Ansible playbook from a Jenkins pipeline. Instead of installing Ansible inside the Jenkins container (running on a DigitalOcean droplet) we're gonna create a dedicated Ansible server, install Ansible on that server and running the Ansible playbooks from that server. Then we're gonna write a Jenkins pipeline which executes an Ansible playbook on the dedicated Ansible server to configure two EC2 instances (install Docker and Docker-Compose on them).
+
+See [demo project 7](./demo-projects/7-ansible-integration-in-jenkins/).
+
+</details>
+
+****
