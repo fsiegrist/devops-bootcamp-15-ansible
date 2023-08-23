@@ -104,9 +104,8 @@ _my-playbook.yaml_ (see deploy-docker.yaml from demo project #5)
   become: yes
   tasks:
     - name: Ensure Docker is installed
-      yum:
+      dnf: # yum requires python 2; see https://docs.ansible.com/ansible/latest/collections/ansible/builtin/dnf_module.html
         name: docker
-        update_cache: yes
         state: present
 
 - name: Install Docker Compose
@@ -148,9 +147,8 @@ _my-playbook.yaml_ (see deploy-docker.yaml from demo project #5)
   become: yes
   tasks:
     - name: Ensure pip3 is installed
-      yum:
+      dnf:
         name: python3-pip
-        update_cache: yes
         state: present
 
 - name: Install required Python modules
@@ -168,16 +166,18 @@ In the Jenkins pipeline we are going to copy these files to the Ansible Control 
 #### Steps to add ssh key file credentials in Jenkins for Control Node server and Managed Node servers
 In order to enable Jenkins to ssh into the Ansible Control Node, we need to configure the according credentials in Jenkins. And since Ansible is going to connect to the EC2 instances using the private key located at `~/ssh-key.pem` on the Control Node (see _ansible.cfg_), this private key file must be copied to the Control Node too and must therefore also be available on the Jenkins server.
 
-The Jenkins plugin `sshagent` requires the private key to be in the legacy PEM format. Our private key file is in the newer ED25519 format. So we have to convert it before we can use it in Jenkins. To do that, execute the following commands:
+The Jenkins plugins "SSH Agent" and "SSH Pipline Steps" require the private key to be in the legacy PEM format (`-----BEGIN RSA PRIVATE KEY-----`). Our private key file is in the newer OpenSSH format (`-----BEGIN OPENSSH PRIVATE KEY-----`). So we have to convert it before we can use it in Jenkins. To do that, execute the following commands:
 
 ```sh
-cp ~/.ssh/id_ed25519 ~/.ssh/id_ed25519.backup
-ssh-keygen -p -f ~/.ssh/id_ed25519 -m pem -P "" -N ""
+cp ~/.ssh/id_rsa ~/.ssh/id_rsa.backup
+ssh-keygen -p -f ~/.ssh/id_rsa -m pem -P "" -N ""
+mv ~/.ssh/id_rsa ~/.ssh/id_rsa_legacy_format
+mv ~/.ssh/id_rsa.backup ~/.ssh/id_rsa
 ```
 
-Login to the Jenkins management console, navigate to 'Dashboard' > 'Manage Jenkins' > 'Manage Credentials' > '(global)', press "+ Add Credentials", select the kind "SSH Username with private key", enter the ID "ansible-server-key", enter the Username "root", select "Private Key" > "Enter directly", press "Add" and paste the value of the converted `id_ed25519` file into the text area. Press "Create".
+Login to the Jenkins management console, navigate to 'Dashboard' > 'Manage Jenkins' > 'Manage Credentials' > '(global)', press "+ Add Credentials", select the kind "SSH Username with private key", enter the ID "ansible-server-key", enter the Username "root", select "Private Key" > "Enter directly", press "Add" and paste the value of the converted `id_rsa_legacy_format` file into the text area. Press "Create".
 
-Now we have to make the private key for connecting to the EC2 instances available in Jenkins too. So again navigate to 'Dashboard' > 'Manage Jenkins' > 'Manage Credentials' > '(global)', press "+ Add Credentials", select the kind "SSH Username with private key", enter the ID "ansible-ec2-server-key", enter the Username "ec2-user", select "Private Key" > "Enter directly", press "Add" and paste the value of the downloaded `ansible-jenkins.pem` file into the text area. Press "Create".
+Now we have to make the private key for connecting to the EC2 instances available in Jenkins too. So again navigate to 'Dashboard' > 'Manage Jenkins' > 'Manage Credentials' > '(global)', press "+ Add Credentials", select the kind "SSH Username with private key", enter the ID "ansible-ec2-server-key", enter the Username "ec2-user", select "Private Key" > "Enter directly", press "Add" and paste the value of the downloaded `ansible-jenkins.pem` file into the text area. (Until now, August 2023, AWS generates RSA keys in the legacy format, so no need to convert the file.) Press "Create".
 
 
 #### Steps to configure Jenkins to execute the Ansible Playbook on remote Ansible Control Node server
