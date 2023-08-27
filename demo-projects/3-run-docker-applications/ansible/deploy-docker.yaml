@@ -79,6 +79,6 @@
         password: "{{ docker_password }}"
         state: present
     - name: Start containers from docker-compose file
-      docker_compose:
+      community.docker.docker_compose:
         project_src: /home/ec2-user
         state: present
