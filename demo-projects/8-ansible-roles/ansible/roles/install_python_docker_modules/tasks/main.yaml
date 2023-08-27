@@ -1,0 +1,5 @@
+- name: Install Python modules 'docker' and 'docker-compose'
+  pip:
+    name:
+      - docker
+      - docker-compose

@@ -1,0 +1,45 @@
+version: '3.9'
+services:
+  java-app:
+    image: fsiegrist/fesi-repo:bootcamp-java-mysql-project-1.0
+    environment:
+      - DB_SERVER=mysql
+      - DB_USER=user
+      - DB_PWD=password
+      - DB_NAME=my-db
+    ports:
+      - 8080:8080
+    depends_on:
+      - mysql
+    restart: always
+    container_name: bootcamp-java-mysql
+
+  mysql:
+    image: mysql:8.0.32
+    ports:
+      - 3306:3306
+    environment:
+      - MYSQL_ROOT_PASSWORD=secret-root-password
+      - MYSQL_USER=user
+      - MYSQL_PASSWORD=password
+      - MYSQL_DATABASE=my-db
+    volumes:
+      - mysql-data:/var/lib/mysql
+    container_name: mysql
+
+  phpmyadmin:
+    image: phpmyadmin:5.2.1
+    ports:
+      - 8081:80
+    environment:
+      - PMA_HOST=mysql # defines the host name of the MySQL server
+                       # (= service name for containers running in the same Docker network)
+      - PMA_PORT=3306
+      - MYSQL_ROOT_PASSWORD=secret-root-password
+    depends_on:
+      - mysql
+    restart: always
+    container_name: phpmyadmin
+
+volumes:
+  mysql-data:

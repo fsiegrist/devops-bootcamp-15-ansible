@@ -622,3 +622,87 @@ See [demo project 7](./demo-projects/7-ansible-integration-in-jenkins/).
 </details>
 
 ****
+
+<details>
+<summary>Video: 25 - Ansible Roles - Make your Ansible content more reusable and modular</summary>
+<br />
+
+As your Ansible playbooks become larger and the number of playbooks increases, it gets more and more difficult to manage all these files and keep control over all the plays and tasks. This is where Ansible roles come in and help structure the content.
+
+You can group your content in roles to easily reuse and share them with other users and break up large playbooks into smaller manageable files. Roles can contain
+- tasks that the role executes
+- static files that the role deploys
+- (default) variables for the tasks (which you can overwrite)
+- custom modules, which are used within this role
+
+Roles are like small applications that are easy to maintain and reuse in your playbooks. They can be developped and tested separately.
+
+A role has a defined directory structure. So it's easy to navigate and maintain the files of a role.
+
+```txt
+# playbooks
+site.yaml
+webservers.yaml
+fooservers.yaml
+roles/
+  common/
+    tasks/     # mandatory (each role must have at least a tasks folder)
+    handlers/
+    library/
+    files/
+    templates/
+    vars/
+    defaults/
+    meta/
+  webservers/
+    tasks/     # mandatory
+    meta/
+```
+
+Roles feel like functions: you extract common logic into roles and use it in different places with different paramaters. Default variables allow you to parameterize a role without having to define all the variable values as a user. Only if needed, you can overwrite the default values.
+
+```txt
+ansible/
+  roles/
+    create_user/  # <--
+      defaults/
+        main.yaml
+      tasks/
+        main.yaml
+    start_containers/  # <--
+      defaults/
+        main.yaml
+      files/
+        docker-compose.yaml
+      tasks/
+        main.yaml
+      vars/
+        main.yaml
+```
+
+```yaml
+- name: Create new linux user
+  hosts: all
+  become: yes
+  vars:
+    user_groups: adm, docker
+  roles:
+    create_user  # <--
+
+- name: Start docker container
+  hosts: all
+  become: yes
+  become_user: fesi
+  var_files:
+    project-vars
+  roles:
+    start_containers  # <--
+```
+
+You can write your own roles or use existing ones from the community. You can find such roles on [Ansible Galaxy](https://galaxy.ansible.com/home) (example: [Jenkins](https://galaxy.ansible.com/lean_delivery/jenkins)) or from public Git repositories like GitHub (example: [MySQL](https://github.com/geerlingguy/ansible-role-mysql)).
+
+In the eighth demo project we are going to create roles and use them in a playbook. See [demo project 8](./demo-projects/8-ansible-roles/).
+
+</details>
+
+****

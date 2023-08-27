@@ -1,0 +1,14 @@
+- name: Copy docker-compose.yaml
+  copy:
+    src: docker-compose.yaml
+    dest: /home/fesi/docker-compose.yaml
+- name: Make sure a Docker login against the private registry on Docker Hub is established
+  community.docker.docker_login:
+    registry_url: "{{ docker_registry }}"
+    username: "{{ docker_username }}"
+    password: "{{ docker_password }}"
+    state: present
+- name: Start containers from docker-compose file
+  community.docker.docker_compose:
+    project_src: /home/fesi
+    state: present

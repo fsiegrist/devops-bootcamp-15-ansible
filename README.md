@@ -16,3 +16,4 @@ And finally it contains the following demo projects:
 - [Configure Dynamic Inventory](./demo-projects/5-dynamic-inventory/)
 - [Automate Kubernetes Deployment](./demo-projects/6-deploy-application-in-k8s/)
 - [Integrate Ansible in Jenkins CI/CD Pipeline](./demo-projects/7-ansible-integration-in-jenkins/)
+- [Ansible Roles](./demo-projects/8-ansible-roles/)

@@ -1,0 +1,9 @@
+- name: Create new user fesi
+  user:
+    name: fesi
+    groups: "{{ user_groups }}"
+- name: Create ansible tmp directory
+  file:
+    path: /home/fesi/.ansible/tmp
+    state: directory
+    mode: '0777'

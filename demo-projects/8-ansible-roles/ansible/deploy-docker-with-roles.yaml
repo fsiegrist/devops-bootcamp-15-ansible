@@ -1,0 +1,46 @@
+- name: Install Docker and Docker Compose. Start Docker. Install pip3.
+  hosts: aws_ec2
+  become: yes
+  tasks:
+    - name: Ensure Docker is installed
+      yum:
+        name: docker
+        update_cache: yes
+        state: present
+    - name: Get architecture of remote machine
+      shell: echo `uname -s`-`uname -m`
+      register: remote_arch
+    - name: Download and install Docker Compose
+      get_url:
+        url: https://github.com/docker/compose/releases/latest/download/docker-compose-{{ remote_arch.stdout }}
+        dest: /usr/local/bin/docker-compose
+        mode: +x
+    - name: Ensure Docker daemon is started
+      systemd:
+        name: docker
+        state: started
+    - name: Ensure pip3 is installed
+      yum:
+        name: python3-pip
+        update_cache: yes
+        state: present
+
+
+- name: Create new Linux user fesi.
+  hosts: aws_ec2
+  become: yes
+  vars:
+    user_groups: adm,docker
+  roles: 
+    - create_user
+
+
+- name: Start Docker containers (as user fesi).
+  hosts: aws_ec2
+  become: yes
+  become_user: fesi
+  vars_files:
+    - project-vars
+  roles:
+    - install_python_docker_modules
+    - start_containers
