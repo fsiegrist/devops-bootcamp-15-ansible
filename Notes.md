@@ -701,6 +701,11 @@ ansible/
 
 You can write your own roles or use existing ones from the community. You can find such roles on [Ansible Galaxy](https://galaxy.ansible.com/home) (example: [Jenkins](https://galaxy.ansible.com/lean_delivery/jenkins)) or from public Git repositories like GitHub (example: [MySQL](https://github.com/geerlingguy/ansible-role-mysql)).
 
+See
+- [official doc](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_reuse_roles.html)
+- [variable precedence](https://docs.ansible.com/ansible/latest/playbook_guide/playbooks_variables.html#variable-precedence-where-should-i-put-a-variable)
+
+### Demo Project
 In the eighth demo project we are going to create roles and use them in a playbook. See [demo project 8](./demo-projects/8-ansible-roles/).
 
 </details>
