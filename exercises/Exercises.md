@@ -16,7 +16,7 @@ Also consider that the application may already be running from the previous jar 
 **Solution:**
 
 **Step 1:** Create an Ubuntu server on DigitalOcean\
-Create a new Droplet on DigitalOcean:
+Login to your account on [DigitalOcean](https://cloud.digitalocean.com/login) and create a new Droplet:
 - Frankfurt
 - Ubuntu 22.04
 - Shared CPU (Basic)
@@ -251,7 +251,128 @@ Developers like the convenience of running the application directly from their l
 
 **Solution:**
 
+**Prerequisites: Create a Nexus server on DigitalOcean**
 
+**Step 1:** Create an Ubuntu server on DigitalOcean\
+Login to your account on [DigitalOcean](https://cloud.digitalocean.com/login) and create a new Droplet:
+- Frankfurt
+- Ubuntu 22.04
+- Shared CPU (Basic)
+- Regular (Disk type: SSD)
+- 4GB/2CPUs 80GB SSD
+- SSH Key (fesimba)
+- Hostname 'nexus-server'
+
+=> Droplet IP address: 134.122.88.22
+
+**Step 2:** Install Java and net-tools
+```sh
+# SSH into the server
+ssh root@134.122.88.22
+
+# install Java version 8 (needed for Nexus) and net-tools (needed for the netstat command):
+apt update
+apt install openjdk-8-jre-headless
+apt install net-tools
+```
+
+**Step 3:** Install Nexus
+```sh
+# download and unpack the latest Nexus version into the /opt folder
+cd /opt
+wget https://download.sonatype.com/nexus/3/latest-unix.tar.gz
+tar -zxvf latest-unix.tar.gz
+```
+
+**Step 4:** Create nexus user
+```sh
+adduser nexus
+
+# change the privileges for the unpacked folders (nexus user needs to access both):
+chown -R nexus:nexus nexus-3.59.0-01
+chown -R nexus:nexus sonatype-work
+```
+
+**Step 5:** Configure Nexus to run with the nexus user we just created\
+Add `run_as_user="nexus"` to the file `nexus-3.59.0-01/bin/nexus.rc` using vim.
+
+**Step 6:** Start Nexus
+```sh
+# switch to the nexus user and start Nexus
+su - nexus
+/opt/nexus-3.59.0-01/bin/nexus start
+
+# check the port on which Nexus is running
+ps aux | grep nexus # shows the PID of the nexus process
+netstat -tlnp # shows that the process with the nexus PID is listening on port 8081
+```
+
+So go to the DigitalOcean admin webpage and add a firewall rule opening the port 8081 for all IP addresses.
+
+**Step 7:** Change the admin user's password
+- Open your browser and navigate to `http://134.122.88.22:8081` to access the Nexus login page. 
+- There is a predefined `admin` user. Its password is stored in `/opt/sonatype-work/nexus3/admin.password`. Log in with this password and change it. 
+- Login again with the new password.
+
+**Create and run the Ansible Playbook:**
+
+**Step 1:** Create the Ansible Playbook\
+Create a file called `ex2-push-to-nexus.yaml` with the following content:
+```yaml
+- name: Push to Nexus repo
+  hosts: localhost
+  gather_facts: False
+  tasks:
+  - name: Push jar artifact to Nexus repo
+    # This protects password from being displayed in task output. Comment out if you want to see the output for debugging
+    no_log: True
+    
+    uri:
+      # Notes on Nexus upload artifact URL:
+      # 1 - You can add group name in the url ".../com/my/group/{{ artifact_name }}..."
+      # 2 - The file name (my-app-1.0-SNAPSHOT.jar) must match the url path of (.../com/my-app/1.0-SNAPSHOT/my-app-1.0-SNAPSHOT.jar), otherwise it won't work
+      # 3 - You can only upload file with SNAPSHOT in the version into the maven-snapshots repo, so naming matters
+      url: "{{ nexus_url }}/repository/maven-snapshots/com/my/group/{{ artifact_name }}/{{ artifact_version }}/{{ artifact_name }}-{{ artifact_version }}.jar"
+      
+      method: PUT
+      src: "{{ jar_file_path }}"
+      user: "{{ nexus_user }}"
+      password: "{{ nexus_password }}"
+      force_basic_auth: yes
+      
+      # With default "raw" body_format request form is too large, and causes 500 server error on Nexus (Form is larger than max length 200000), So we are setting it to 'json'
+      body_format: json
+      
+      status_code:
+      - 201
+```
+
+Create a file called `ex2-hosts` with the following content:
+```conf
+[localhost]
+```
+
+**Step 2:** Run the playbook\
+Execute the following command to run the playbook:
+```sh
+ansible-playbook -i ex2-hosts ex2-push-to-nexus.yaml --extra-vars "nexus_url=http://134.122.88.22:8081 \
+  nexus_user=admin \
+  nexus_password=******* \
+  repository_name=maven-snapshots \
+  artifact_name=bootcamp-java-project \
+  artifact_version=1.0-SNAPSHOT \
+  jar_file_path=./java-app/build/libs/bootcamp-java-project-1.0-SNAPSHOT.jar"
+
+# PLAY [Push to Nexus repo] *************************************************************************************************************************
+# 
+# TASK [Push jar artifact to Nexus repo] ************************************************************************************************************
+# ok: [localhost]
+# 
+# PLAY RECAP ****************************************************************************************************************************************
+# localhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
+```
+
+Login to the Nexus server as admin user and browse the maven-snapshot repository to check, whether the jar has been uploaded successfully. Or open the browser and navigate to 'http://134.122.88.22:8081/service/rest/repository/browse/maven-snapshots/com/my/group/bootcamp-java-project/1.0-SNAPSHOT/'.
 
 </details>
 
