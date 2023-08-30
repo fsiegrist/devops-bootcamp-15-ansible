@@ -390,7 +390,415 @@ Now your team can use this project to spin up a new Jenkins server with 1 Ansibl
 
 **Solution:**
 
+Login to your AWS Management Console and create a key-pair called 'ec2-key-pair'. Copy the downloaded 'ec2-key-pair.pem' file to the '~/.ssh' directory.
 
+Create a file called `ex3-provision-jenkins-ec2.yaml` with the following content:
+```yaml
+# Play Provision Jenkins Server
+- name: Provision Jenkins server
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: get vpc_information
+    amazon.aws.ec2_vpc_net_info:
+      region: "{{ aws_region }}"
+      filters:
+        is-default: True
+    register: vpc_info
+  - debug: msg={{ vpc_info }}
+  - amazon.aws.ec2_vpc_subnet_info:
+      filters:
+        vpc-id: "{{ vpc_info.vpcs[0].vpc_id }}"
+        default-for-az: True
+    register: subnet_info
+  - debug: msg={{ subnet_info }}
+  - name: Start an instance with a public IP address
+    amazon.aws.ec2_instance:
+      name: "jenkins-server"
+      key_name: "{{ key_name }}"
+      region: "{{ aws_region }}"
+      vpc_subnet_id: "{{ subnet_info.subnets[0].id }}"
+      instance_type: t2.medium
+      security_group: default
+      network:
+        assign_public_ip: true
+      image_id: "{{ ami_id }}"
+      tags:
+        server: Jenkins
+    register: ec2_result
+  # On creation, ec2_result object doesn't get public_ip attribute immediately, because the assignment takes time, so we wait and then query again
+  - pause:
+      seconds: 60
+  - name: Get public_ip address of the ec2 instance 
+    amazon.aws.ec2_instance_info:
+      region: "{{ aws_region }}"
+      instance_ids:
+      - "{{ ec2_result.instance_ids[0] }}"
+    register: ec2_result
+  - name: update hosts file
+    lineinfile:
+      path: "ex3-hosts-jenkins-server"
+      line: "{{ ec2_result.instances[0].public_ip_address }} ansible_ssh_private_key_file={{ ssh_key_path }} ansible_user={{ ssh_user }}"
+      insertbefore: BOF
+    register: file_result
+  - debug: msg={{ file_result }}
+```
+
+Create a second file called `ex3-install-jenkins-ec2.yaml` with the following content:
+```yaml
+# Play Get Server Address
+- name: Get server ip 
+  hosts: localhost
+  gather_facts: false
+  tasks:
+  - name: Get public_ip address of the ec2 instance 
+    amazon.aws.ec2_instance_info:
+      region: "{{ aws_region }}"
+      filters:
+        "tag:Name": "jenkins-server"
+    register: ec2_info
+
+# Play Prepare Jenkins Server - with all needed tools, Jenkins, Docker, Nodejs & npm
+- name: Prepare server for Jenkins
+  hosts: "{{ hostvars['localhost']['ec2_info'].instances[0].public_ip_address }}"
+  become: yes
+  tasks:
+  - name: Install Java
+    yum:
+      name: java-17-amazon-corretto-devel
+      update_cache: yes
+      state: present
+  - name: Install Jenkins Repository
+    get_url:
+      url: https://pkg.jenkins.io/redhat-stable/jenkins.repo
+      dest: /etc/yum.repos.d/jenkins.repo
+  - name: Import RPM key
+    rpm_key:
+      key: https://pkg.jenkins.io/redhat-stable/jenkins.io-2023.key
+      state: present
+  - name: Install daemonize dependency for Jenkins
+    command: amazon-linux-extras install epel -y # repository that provides 'daemonize'
+  - name: Install /etc/yum.repos.d/jenkins.repo
+    yum:
+      name: jenkins
+      update_cache: yes
+      state: present
+  - name: Install Docker
+    yum: 
+      name: docker
+      update_cache: yes
+      state: present
+  - name: Check that nvm installed
+    stat:
+      path: ~/.nvm
+    register: stat_result
+  - name: Download installer
+    get_url: 
+      url: https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh
+      dest: ./install.sh
+    when: not stat_result.stat.exists
+  - name: 
+    shell: bash install.sh
+    when: not stat_result.stat.exists
+  - name: install node
+    shell: "source /root/.nvm/nvm.sh && nvm install 8.0.0 && node --version" 
+    args:
+      executable: /bin/bash
+    register: cmd_result
+  - debug: msg={{ cmd_result }}
+
+# Play Start Jenkins
+- name: Start Jenkins
+  hosts: "{{ hostvars['localhost']['ec2_info'].instances[0].public_ip_address }}"
+  become: yes
+  tasks:
+  - name: Start Jenkins server
+    service:
+      name: jenkins
+      state: started
+  - name: Wait 10 seconds to check the Jenkins port
+    pause:
+      seconds: 10  
+  - name: Check that application started with netstat
+    command: netstat -plnt 
+    register: app_status
+  - debug: msg={{ app_status }} 
+  - name: Print out Jenkins admin password
+    slurp:
+      src: /var/lib/jenkins/secrets/initialAdminPassword
+    register: jenkins_pwd
+    # output the passeword base64 encoded; to decode it, execute: echo '...debug-output...' | base64 -d
+  - debug: msg={{ jenkins_pwd['content'] }}
+```
+
+Finally create an emtpy file called `ex3-hosts-jenkins-server`:
+```sh
+touch ex3-hosts-jenkins-server
+```
+
+Now run the playbook `ex3-provision-jenkins-ec2.yaml` to provision an EC2 instance:
+```sh
+ansible-playbook ex3-provision-jenkins-ec2.yaml --extra-vars "aws_region=eu-central-1 \
+    ami_id=ami-0aa74281da945b6b5 \
+    key_name=ec2-key-pair \
+    ssh_key_path=~/.ssh/ec2-key-pair.pem \
+    ssh_user=ec2-user" 
+
+# [WARNING]: provided hosts list is empty, only localhost is available. Note that the implicit localhost does not match 'all'
+# 
+# PLAY [Provision Jenkins server] *******************************************************************************************************************
+# 
+# TASK [get vpc_information] ************************************************************************************************************************
+# ok: [localhost]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [localhost] => {
+#     "msg": {
+#         "changed": false,
+#         "failed": false,
+#         "vpcs": [
+#             {
+#                 "cidr_block": "172.31.0.0/16",
+#                 "cidr_block_association_set": [
+#                     {
+#                         "association_id": "vpc-cidr-assoc-0af7b313aeed307a7",
+#                         "cidr_block": "172.31.0.0/16",
+#                         "cidr_block_state": {
+#                             "state": "associated"
+#                         }
+#                     }
+#                 ],
+#                 "dhcp_options_id": "dopt-07901edc546c6cacb",
+#                 "enable_dns_hostnames": true,
+#                 "enable_dns_support": true,
+#                 "id": "vpc-04acd8f40d2f4b8e9",
+#                 "instance_tenancy": "default",
+#                 "is_default": true,
+#                 "owner_id": "369076538622",
+#                 "state": "available",
+#                 "tags": {},
+#                 "vpc_id": "vpc-04acd8f40d2f4b8e9"
+#             }
+#         ]
+#     }
+# }
+# 
+# TASK [amazon.aws.ec2_vpc_subnet_info] *************************************************************************************************************
+# ok: [localhost]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [localhost] => {
+#     "msg": {
+#         "changed": false,
+#         "failed": false,
+#         "subnets": [
+#             {
+#                 "assign_ipv6_address_on_creation": false,
+#                 "availability_zone": "eu-central-1a",
+#                 "availability_zone_id": "euc1-az2",
+#                 "available_ip_address_count": 4089,
+#                 "cidr_block": "172.31.32.0/20",
+#                 "default_for_az": true,
+#                 "enable_dns64": false,
+#                 "id": "subnet-05725cf7170e2d028",
+#                 "ipv6_cidr_block_association_set": [],
+#                 "ipv6_native": false,
+#                 "map_customer_owned_ip_on_launch": false,
+#                 "map_public_ip_on_launch": true,
+#                 "owner_id": "369076538622",
+#                 "private_dns_name_options_on_launch": {
+#                     "enable_resource_name_dns_a_record": false,
+#                     "enable_resource_name_dns_aaaa_record": false,
+#                     "hostname_type": "ip-name"
+#                 },
+#                 "state": "available",
+#                 "subnet_arn": "arn:aws:ec2:eu-central-1:369076538622:subnet/subnet-05725cf7170e2d028",
+#                 "subnet_id": "subnet-05725cf7170e2d028",
+#                 "tags": {},
+#                 "vpc_id": "vpc-04acd8f40d2f4b8e9"
+#             }
+#         ]
+#     }
+# }
+# 
+# TASK [Start an instance with a public IP address] *************************************************************************************************
+# changed: [localhost]
+# 
+# TASK [pause] **************************************************************************************************************************************
+# Pausing for 60 seconds
+# (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)
+# ok: [localhost]
+# 
+# TASK [Get public_ip address of the ec2 instance] **************************************************************************************************
+# ok: [localhost]
+# 
+# TASK [update hosts file] **************************************************************************************************************************
+# changed: [localhost]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [localhost] => {
+#     "msg": {
+#         "backup": "",
+#         "changed": true,
+#         "diff": [
+#             {
+#                 "after": "",
+#                 "after_header": "ex3-hosts-jenkins-server (content)",
+#                 "before": "",
+#                 "before_header": "ex3-hosts-jenkins-server (content)"
+#             },
+#             {
+#                 "after_header": "ex3-hosts-jenkins-server (file attributes)",
+#                 "before_header": "ex3-hosts-jenkins-server (file attributes)"
+#             }
+#         ],
+#         "failed": false,
+#         "msg": "line added"
+#     }
+# }
+# 
+# PLAY RECAP ****************************************************************************************************************************************
+# localhost                  : ok=9    changed=2    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
+```
+
+At the end of the playbook, the IP address, key-file and ssh-user information is written to the file `ex3-hosts-jenkins-server`. Now we can execute the playbook `ex3-install-jenkins-ec2.yaml` to install Jenkins on the provisioned EC2 instance:
+```sh
+ansible-playbook -i ex3-hosts-jenkins-server ex3-install-jenkins-ec2.yaml --extra-vars "aws_region=eu-central-1"
+
+# PLAY [Get server ip] ******************************************************************************************************************************
+# 
+# TASK [Get public_ip address of the ec2 instance] **************************************************************************************************
+# ok: [localhost]
+# 
+# PLAY [Prepare server for Jenkins] *****************************************************************************************************************
+# 
+# TASK [Gathering Facts] ****************************************************************************************************************************
+# [WARNING]: Platform linux on host 3.70.187.221 is using the discovered Python interpreter at /usr/bin/python3.7, but future installation of
+# another Python interpreter could change the meaning of that path. See https://docs.ansible.com/ansible-
+# core/2.15/reference_appendices/interpreter_discovery.html for more information.
+# ok: [3.70.187.221]
+# 
+# TASK [Install Java] *******************************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Install Jenkins Repository] *****************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Import RPM key] *****************************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Install daemonize dependency for Jenkins] ***************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Install /etc/yum.repos.d/jenkins.repo] ******************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Install Docker] *****************************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Check that nvm installed] *******************************************************************************************************************
+# ok: [3.70.187.221]
+# 
+# TASK [Download installer] *************************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [shell] **************************************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [install node] *******************************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [3.70.187.221] => {
+#     "msg": {
+#         "changed": true,
+#         "cmd": "source /root/.nvm/nvm.sh && nvm install 8.0.0 && node --version",
+#         "delta": "0:01:07.656024",
+#         "end": "2023-08-30 21:36:46.868725",
+#         "failed": false,
+#         "msg": "",
+#         "rc": 0,
+#         "start": "2023-08-30 21:35:39.212701",
+#         "stderr_lines": [
+#             "Downloading https://nodejs.org/dist/v8.0.0/node-v8.0.0-linux-x64.tar.xz...",
+#             ...
+#             "Computing checksum with sha256sum",
+#             "Checksums matched!"
+#         ],
+#         "stdout_lines": [
+#             "Downloading and installing node v8.0.0...",
+#             "Now using node v8.0.0 (npm v5.0.0)",
+#             "Creating default alias: \u001b[0;32mdefault\u001b[0m \u001b[0;90m->\u001b[0m \u001b[0;32m8.0.0\u001b[0m (\u001b[0;90m->\u001b[0m \u001b[0;32mv8.0.0\u001b[0m)",
+#             "v8.0.0"
+#         ]
+#     }
+# }
+# 
+# PLAY [Start Jenkins] ******************************************************************************************************************************
+# 
+# TASK [Gathering Facts] ****************************************************************************************************************************
+# ok: [3.70.187.221]
+# 
+# TASK [Start Jenkins server] ***********************************************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [Wait 10 seconds to check the Jenkins port] **************************************************************************************************
+# Pausing for 10 seconds
+# (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)
+# ok: [3.70.187.221]
+# 
+# TASK [Check that application started with netstat]  ***********************************************************************************************
+# changed: [3.70.187.221]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [3.70.187.221] => {
+#     "msg": {
+#         "changed": true,
+#         "cmd": [
+#             "netstat",
+#             "-plnt"
+#         ],
+#         "delta": "0:00:00.015095",
+#         "end": "2023-08-30 21:51:51.120041",
+#         "failed": false,
+#         "msg": "",
+#         "rc": 0,
+#         "start": "2023-08-30 21:51:51.104946",
+#         "stderr": "",
+#         "stderr_lines": [],
+#         "stdout_lines": [
+#             "Aktive Internetverbindungen (Nur Server)",
+#             "Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    ",
+#             "tcp        0      0 0.0.0.0:111             0.0.0.0:*               LISTEN      2704/rpcbind        ",
+#             "tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      3292/sshd           ",
+#             "tcp        0      0 127.0.0.1:25            0.0.0.0:*               LISTEN      3150/master         ",
+#             "tcp6       0      0 :::111                  :::*                    LISTEN      2704/rpcbind        ",
+#             "tcp6       0      0 :::8080                 :::*                    LISTEN      16249/java          ",
+#             "tcp6       0      0 :::22                   :::*                    LISTEN      3292/sshd           "
+#         ]
+#     }
+# }
+# 
+# TASK [Print out Jenkins admin password] ***********************************************************************************************************
+# ok: [3.70.187.221]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [3.70.187.221] => {
+#     "msg": "MWQzNmIxMzg0MmIzNDc0ZGI0Njc4ODQ4OWQwZWJmYTYK"
+# }
+# 
+# PLAY RECAP ****************************************************************************************************************************************
+# 3.70.187.221               : ok=17   changed=4    unreachable=0    failed=0    skipped=2    rescued=0    ignored=0   
+# localhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+The debug output at the end displays the initial Jenkins admin password base64 encoded. To decode it, execute the following command:
+```sh
+echo 'MWQzNmIxMzg0MmIzNDc0ZGI0Njc4ODQ4OWQwZWJmYTYK' | base64 -d
+# 1d36b13842b3474db46788489d0ebfa6
+```
+
+Login to the AWS Management Console and add an inbound rule to the default security group of the VPC the EC2 instance is running in, that allows access to port 8080 from all IP addresses. Then open the browser and navigate to 'http://3.70.187.221:8080'. Enter the decoded password ('1d36b13842b3474db46788489d0ebfa6').
 
 </details>
 
