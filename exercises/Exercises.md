@@ -814,7 +814,180 @@ Your company has infrastructure on multiple platforms. So in addition to creatin
 
 **Solution:**
 
+- To **provision** the EC2 instances, the playbook `ex3-provision-jenkins-ec2.yaml` is executed for both amazon-linux and ubuntu servers. The only difference between the two is the "ami_id" value. So you either provide the "amazon-linux" ami-id or the "ubuntu" ami-id.
+- To **install** Jenkins, the playbook `ex4-install-jenkins.yaml` is executed, which contains the shared tasks and dynamically selects the `ex4-host-amazon.yaml` or `ex4-host-ubuntu.yaml` files, which contain the OS specific differenes. The selection is based on what "host_os" variable you provide.
 
+**Create and configure Jenkins on --amazon-linux-- EC2 instance:**
+```sh
+ansible-playbook ex3-provision-jenkins-ec2.yaml --extra-vars "aws_region=eu-central-1 \
+    ami_id=ami-0aa74281da945b6b5 \
+    key_name=ec2-key-pair \
+    ssh_key_path=~/.ssh/ec2-key-pair.pem \
+    ssh_user=ec2-user"
+
+# Wait until the server is fully initialised
+
+ansible-playbook -i ex3-hosts-jenkins-server ex4-install-jenkins.yaml --extra-vars "host_os=amazon-linux \
+    aws_region=eu-central-1"
+```
+
+**Create and configure Jenkins on --ubuntu-- EC2 instance:**
+```sh
+ansible-playbook ex3-provision-jenkins-ec2.yaml --extra-vars "aws_region=eu-central-1 \
+    ami_id=ami-04e601abe3e1a910f \
+    key_name=ec2-key-pair \
+    ssh_key_path=~/.ssh/ec2-key-pair.pem \
+    ssh_user=ubuntu"
+
+# Wait until the server is fully initialised
+
+ansible-playbook -i ex3-hosts-jenkins-server ex4-install-jenkins.yaml --extra-vars "host_os=ubuntu \
+    aws_region=eu-central-1"
+
+# PLAY [Get server ip] ******************************************************************************************************************************
+# 
+# TASK [Get public_ip address of the ec2 instance] **************************************************************************************************
+# ok: [localhost]
+# 
+# PLAY [Prepare server for Jenkins] *****************************************************************************************************************
+# 
+# TASK [Gathering Facts] ****************************************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [Include task for amazon-linux server] *******************************************************************************************************
+# skipping: [3.127.223.76]
+# 
+# TASK [Include task for ubuntu server] *************************************************************************************************************
+# included: /Users/fsiegrist/Development/devops_bootcamp/15-Configuration-Management-With-Ansible/devops-bootcamp-15-ansible/exercises/ex4-host-ubuntu.yaml for 3.127.223.76
+# 
+# TASK [Update apt repo cache] **********************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Install java 11] ****************************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Add GPG keys] *******************************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Install Jenkins from debian package repository] *********************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Update apt repo cache] **********************************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [Install Jenkins] ****************************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Install Docker] *****************************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Start Docker] *******************************************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [Check that nvm installed] *******************************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [Download nvm installer] *********************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Install nvm] ********************************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [Install node] *******************************************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [3.127.223.76] => {
+#     "msg": {
+#         "changed": true,
+#         "cmd": "source /root/.nvm/nvm.sh && nvm install 8.0.0 && node --version",
+#         "delta": "0:00:02.741504",
+#         "end": "2023-08-31 21:15:13.658672",
+#         "failed": false,
+#         "msg": "",
+#         "rc": 0,
+#         "start": "2023-08-31 21:15:10.917168",
+#         "stderr_lines": [
+#             "Downloading https://nodejs.org/dist/v8.0.0/node-v8.0.0-linux-x64.tar.xz...",
+#             "",
+#             "                                                                           0.5%",
+#             "######################################################################## 100.0%",
+#             "Computing checksum with sha256sum",
+#             "Checksums matched!"
+#         ],
+#         "stdout_lines": [
+#             "Downloading and installing node v8.0.0...",
+#             "Now using node v8.0.0 (npm v5.0.0)",
+#             "Creating default alias: \u001b[0;32mdefault\u001b[0m \u001b[0;90m->\u001b[0m \u001b[0;32m8.0.0\u001b[0m (\u001b[0;90m->\u001b[0m \u001b[0;32mv8.0.0\u001b[0m)",
+#             "v8.0.0"
+#         ]
+#     }
+# }
+# 
+# PLAY [Start Jenkins] ******************************************************************************************************************************
+# 
+# TASK [Gathering Facts] ****************************************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [Start Jenkins server] ***********************************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [Wait 10 seconds to check the Jenkins port] **************************************************************************************************
+# Pausing for 10 seconds
+# (ctrl+C then 'C' = continue early, ctrl+C then 'A' = abort)
+# ok: [3.127.223.76]
+# 
+# TASK [Check that application started with netstat] ************************************************************************************************
+# changed: [3.127.223.76]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [3.127.223.76] => {
+#     "msg": {
+#         "changed": true,
+#         "cmd": [
+#             "netstat",
+#             "-plnt"
+#         ],
+#         "delta": "0:00:00.008945",
+#         "end": "2023-08-31 21:15:27.273439",
+#         "failed": false,
+#         "msg": "",
+#         "rc": 0,
+#         "start": "2023-08-31 21:15:27.264494",
+#         "stderr": "",
+#         "stderr_lines": [],
+#         "stdout_lines": [
+#             "Active Internet connections (only servers)",
+#             "Proto Recv-Q Send-Q Local Address           Foreign Address         State       PID/Program name    ",
+#             "tcp        0      0 127.0.0.1:43501         0.0.0.0:*               LISTEN      6197/containerd     ",
+#             "tcp        0      0 127.0.0.53:53           0.0.0.0:*               LISTEN      409/systemd-resolve ",
+#             "tcp        0      0 0.0.0.0:22              0.0.0.0:*               LISTEN      678/sshd: /usr/sbin ",
+#             "tcp6       0      0 :::8080                 :::*                    LISTEN      5759/java           ",
+#             "tcp6       0      0 :::22                   :::*                    LISTEN      678/sshd: /usr/sbin "
+#         ]
+#     }
+# }
+# 
+# TASK [Print out Jenkins admin password] ***********************************************************************************************************
+# ok: [3.127.223.76]
+# 
+# TASK [debug] **************************************************************************************************************************************
+# ok: [3.127.223.76] => {
+#     "msg": "NjkwOGY4YTJmYjYwNDk3YmIyM2NkNTllOTE1ZTZjYmIK"
+# }
+# 
+# PLAY RECAP ****************************************************************************************************************************************
+# 3.127.223.76               : ok=22   changed=10   unreachable=0    failed=0    skipped=1    rescued=0    ignored=0   
+# localhost                  : ok=1    changed=0    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+```
+
+To decode the initial Jenkins admin password, execute the following command:
+```sh
+echo 'NjkwOGY4YTJmYjYwNDk3YmIyM2NkNTllOTE1ZTZjYmIK' | base64 -d
+# 6908f8a2fb60497bb23cd59e915e6cbb
+```
+
+Login to the AWS Management Console and add an inbound rule to the default security group of the VPC the EC2 instance is running in, that allows access to port 8080 from all IP addresses (if you haven't done this step at the end of exercise 3). Then open the browser and navigate to 'http://3.127.223.76:8080'. Enter the decoded password ('6908f8a2fb60497bb23cd59e915e6cbb').
 
 </details>
 
