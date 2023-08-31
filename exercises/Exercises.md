@@ -815,7 +815,7 @@ Your company has infrastructure on multiple platforms. So in addition to creatin
 **Solution:**
 
 - To **provision** the EC2 instances, the playbook `ex3-provision-jenkins-ec2.yaml` is executed for both amazon-linux and ubuntu servers. The only difference between the two is the "ami_id" value. So you either provide the "amazon-linux" ami-id or the "ubuntu" ami-id.
-- To **install** Jenkins, the playbook `ex4-install-jenkins.yaml` is executed, which contains the shared tasks and dynamically selects the `ex4-host-amazon.yaml` or `ex4-host-ubuntu.yaml` files, which contain the OS specific differenes. The selection is based on what "host_os" variable you provide.
+- To **install** Jenkins, the playbook `ex4-install-jenkins.yaml` is executed, which contains the shared tasks and dynamically selects the `ex4-host-amazon.yaml` or `ex4-host-ubuntu.yaml` files, which contain the OS specific differences. The selection is based on what "host_os" variable you provide.
 
 **Create and configure Jenkins on --amazon-linux-- EC2 instance:**
 ```sh
