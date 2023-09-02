@@ -1,0 +1,70 @@
+- name: Install Ansible
+  hosts: tag_Name_ansible_server # from dynamic inventory file
+  become: yes
+  vars:
+    ansible_ssh_private_key_file: ~/.ssh/ansible-control-server-key.pem
+  tasks:
+  - name: Uninstall preinstalled ansible version
+    apt:
+      name: ansible
+      state: absent
+      purge: true
+      autoremove: true
+  - name: Update apt repo cache
+    apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+  - name: Install software-properties-common (needed for ppa support)
+    apt:
+      name: software-properties-common
+      update_cache: yes
+  - name: Add ansible repo
+    apt_repository:
+      repo: ppa:ansible/ansible
+  - name: Install ansible and pip3
+    apt: 
+      name:
+        - ansible
+        - python3-pip
+
+- name: Install ansible role, collection, python packages, files
+  hosts: tag_Name_ansible_server # from dynamic inventory file
+  vars:
+    ansible_ssh_private_key_file: ~/.ssh/ansible-control-server-key.pem
+  tasks:
+  - name: Install mysql role from galaxy
+    community.general.ansible_galaxy_install:
+      type: role
+      name: geerlingguy.mysql
+  - name: Install ansible collection for ec2 module
+    community.general.ansible_galaxy_install:
+      type: collection
+      name: amazon.aws
+  - name: Install pip3 packages for aws
+    pip:
+      name:
+        - boto3
+        - botocore
+  - name: Ensure .aws dir exists
+    file: path=~/.aws state=directory
+  - name: Copy aws credentials
+    copy:
+      src: ~/.aws/credentials
+      dest: /home/ubuntu/.aws/credentials
+  - name: Copy private ssh key for the app servers
+    copy:
+      src: "{{ item }}"
+      dest: /home/ubuntu/
+      mode: 0400
+    with_fileglob: ~/.ssh/ansible-*.pem
+  - name: Copy ansible playbook and configuration files
+    copy:
+      src: "{{ item }}"
+      dest: /home/ubuntu/
+    with_fileglob: ./ex6-*.yaml
+  - name: Copy ansible config file
+    copy:
+      src: ansible.cfg
+      dest: /home/ubuntu/
+  - name: Copy java jar file
+    copy:
+      src: ./bootcamp-java-mysql/build/libs/bootcamp-java-mysql-project-1.0-SNAPSHOT.jar
+      dest: /home/ubuntu/

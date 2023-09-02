@@ -1107,8 +1107,6 @@ Since Jenkins listens on port 8080 in the Docker container and this port is mapp
 <summary>Exercise 6: Web server and Database server configuration</summary>
 <br />
 
-Use repository: https://gitlab.com/devops-bootcamp3/bootcamp-java-mysql
-
 **Tasks:**
 
 Great, you have helped automate some IT processes in your company. Now another team wants your support as well. They want to automate deploying and configuring web server and database server on AWS. The project is not dockerized and they are using a traditional application setup.
@@ -1132,6 +1130,232 @@ Once all the playbooks executed successfully, check that the java application is
 
 **Solution:**
 
+**Create AWS key-pairs:**\
+Login to your AWS Management Console and create an AWS key-pair called `ansible-managed-server-key` for the web server and database server, download it to your local machine and set the permission to 400:
+```sh
+mv ~/Downloads/ansible-managed-server-key.pem ~/.ssh/ansible-managed-server-key.pem
+chmod 400 ~/.ssh/ansible-managed-server-key.pem
+```
+
+Create another AWS key-pair called `ansible-control-server-key` for the ansible control server, download it to your local machine and set the permission to 400:
+```sh
+mv ~/Downloads/ansible-control-server-key.pem ~/.ssh/ansible-control-server-key.pem
+chmod 400 ~/.ssh/ansible-control-server-key.pem
+```
+
+**Adjust ex6-inventory_aws_ec2.yaml:**\
+Set the correct AWS region, in which you want to create all your servers, inside `ex6-inventory_aws_ec2.yaml` file:
+```yaml
+regions: 
+  - eu-central-1
+```
+
+**Adjust ansible.cfg:**\
+Comment in lines 6,7,8 inside ansible.cfg file, to enable the aws_ec2 plugin and configure remote user:
+```conf
+enable_plugins = amazon.aws.aws_ec2
+remote_user = ubuntu
+private_key_file = /home/ubuntu/ansible-managed-server-key.pem
+```
+
+**Important:** Since we are creating the database server without public ip address, by default it won't have internet access. But we need outgoing internet access on the database server in order to be able to download and install packages and tools, including the mysql service itself, so we need to configure that with the following steps:
+- Create a NAT gateway called "my-nat" in one of the PUBLIC subnets, meaning subnets with internet gateway configured in the associated route table. Allocate elastic IP address to the NAT when creating it.
+- Create a new route table called "my-db-rt" and add a route: destination: 0.0.0.0/0, target: "my-nat".
+- In the subnet associations of the route table, select a subnet in which you will create your database server. So this will be our "private" subnet.
+- Copy the 2 subnet ids, 1 public subnet id in which we created the NAT gateway and 1 private subnet id which we assosiated with the "my-db-rt" route table. 
+
+Because we will create the "ansible-server" and "web-server" in the public subnet and "database-server" in the private subnet, we are going to provide them as variables values to our playbook:
+- private-subnet-id: subnet-0612df896fce7720f
+- public-subnet-id: subnet-05725cf7170e2d028
+
+**Build Java MySQL Application:**
+```sh
+cd bootcamp-java-mysql
+./gradlew build
+```
+
+**Execute playbooks to provision ansible control server and configure it with all needed tools and files:**
+```sh
+ansible-playbook ex6-provision-ansible-server.yaml --extra-vars "aws_region=eu-central-1 \
+    ami_id=ami-04e601abe3e1a910f \
+    key_name=ansible-control-server-key \
+    subnet_id=subnet-05725cf7170e2d028"
+
+# Wait until the server is fully initialised
+# public ip: 3.120.148.191
+
+ansible-playbook -i ex6-inventory_aws_ec2.yaml ex6-configure-ansible-server.yaml
+
+# PLAY [Install Ansible] ****************************************************************************************************************************
+# 
+# TASK [Gathering Facts] ****************************************************************************************************************************
+# ok: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Uninstall preinstalled ansible version] *****************************************************************************************************
+# ok: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Update apt repo cache] **********************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Install software-properties-common (needed for ppa support)] ********************************************************************************
+# ok: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Add ansible repo] ***************************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Install ansible and pip3] *******************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# PLAY [Install ansible role, collection, python packages, files] ***********************************************************************************
+# 
+# TASK [Gathering Facts] ****************************************************************************************************************************
+# ok: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Install mysql role from galaxy] *************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Install ansible collection for ec2 module] **************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Install pip3 packages for aws] **************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Ensure .aws dir exists] *********************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Copy aws credentials] ***********************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Copy private ssh key for the app servers] ***************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=~/.ssh/ansible-control-server-key.pem)
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=~/.ssh/ansible-managed-server-key.pem)
+# 
+# TASK [Copy ansible playbook and configuration files] **********************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=./ex6-configure-ansible-server.yaml)
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=./ex6-provision-ansible-server.yaml)
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=./ex6-configure-app-servers.yaml)
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=./ex6-provision-app-servers.yaml)
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=./ex6-vars.yaml)
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com] => (item=./ex6-inventory_aws_ec2.yaml)
+# 
+# TASK [Copy ansible config file] *******************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Copy java jar file] *************************************************************************************************************************
+# changed: [ec2-3-120-148-191.eu-central-1.compute.amazonaws.com]
+# 
+# PLAY RECAP ****************************************************************************************************************************************
+# ec2-3-120-148-191.eu-central-1.compute.amazonaws.com : ok=16   changed=12   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0 
+```
+
+**SSH into ansible control server to execute the playbooks for configuring database and web servers:**
+```sh
+ssh -i ~/.ssh/ansible-control-server-key.pem ubuntu@3.120.148.191
+
+# Execute to provision both (ubuntu) servers inside the same VPC
+ansible-playbook ex6-provision-app-servers.yaml --extra-vars "aws_region=eu-central-1 \
+    ami_id=ami-04e601abe3e1a910f \
+    key_name=ansible-managed-server-key \
+    subnet_id_web=subnet-05725cf7170e2d028 \
+    subnet_id_db=subnet-0612df896fce7720f"
+
+# ---------------------------------------------
+# Wait until both servers are fully initialised
+# -> public ip of web-server: 18.193.111.18
+# ---------------------------------------------
+
+ansible-playbook -i ex6-inventory_aws_ec2.yaml ex6-configure-app-servers.yaml
+
+# PLAY [Configure Database server] *******************************************************************************************************************************
+# 
+# TASK [Gathering Facts] *****************************************************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# TASK [geerlingguy.mysql : ansible.builtin.include_tasks] *******************************************************************************************************
+# included: /home/ubuntu/.ansible/roles/geerlingguy.mysql/tasks/variables.yml for ip-172-31-1-248.eu-central-1.compute.internal
+# 
+# TASK [geerlingguy.mysql : Include OS-specific variables.] ******************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal] => (item=/home/ubuntu/.ansible/roles/geerlingguy.mysql/vars/Debian.yml)
+# 
+# TASK [geerlingguy.mysql : Define mysql_packages.] **************************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# TASK [geerlingguy.mysql : Define mysql_daemon.] ****************************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# ...
+# 
+# TASK [geerlingguy.mysql : Check if MySQL is already installed.] ************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# ...
+# 
+# TASK [geerlingguy.mysql : Get MySQL version.] ******************************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# ...
+# 
+# TASK [geerlingguy.mysql : Ensure MySQL databases are present.] *************************************************************************************************
+# changed: [ip-172-31-1-248.eu-central-1.compute.internal] => (item={'name': 'my-app-db', 'encoding': 'latin1', 'collation': 'latin1_general_ci'})
+# 
+# ...
+# 
+# TASK [validate mysql service started] **************************************************************************************************************************
+# changed: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# TASK [debug] ***************************************************************************************************************************************************
+# ok: [ip-172-31-1-248.eu-central-1.compute.internal] => {
+#     "msg": [
+#         "mysql       2980 19.6 37.9 1624064 375068 ?      Ssl  15:58   0:00 /usr/sbin/mysqld",
+#         "root        3250  0.0  0.0   2888   972 pts/1    S+   15:58   0:00 /bin/sh -c ps aux | grep mysql",
+#         "root        3252  0.0  0.2   7004  2272 pts/1    S+   15:58   0:00 grep mysql"
+#     ]
+# }
+# 
+# RUNNING HANDLER [geerlingguy.mysql : restart mysql] ************************************************************************************************************
+# [WARNING]: Ignoring "sleep" as it is not used in "systemd"
+# changed: [ip-172-31-1-248.eu-central-1.compute.internal]
+# 
+# PLAY [Install Java] ********************************************************************************************************************************************
+# 
+# TASK [Gathering Facts] *****************************************************************************************************************************************
+# ok: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Update apt repo cache] ***********************************************************************************************************************************
+# changed: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Instal java 11] ******************************************************************************************************************************************
+# changed: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# PLAY [Configure web server] ************************************************************************************************************************************
+# 
+# TASK [Gathering Facts] *****************************************************************************************************************************************
+# ok: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Copy jar file to server] *********************************************************************************************************************************
+# changed: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Start java application with needed env vars] *************************************************************************************************************
+# changed: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [Validate java app started] *******************************************************************************************************************************
+# changed: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com]
+# 
+# TASK [debug] ***************************************************************************************************************************************************
+# ok: [ec2-18-193-111-18.eu-central-1.compute.amazonaws.com] => {
+#     "msg": [
+#         "ubuntu      4393 37.0  4.6 2269136 45900 ?       Sl   15:59   0:00 java -jar java-app.jar &",
+#         "ubuntu      4411  0.0  0.0   2888   976 pts/0    S+   15:59   0:00 /bin/sh -c ps aux | grep java",
+#         "ubuntu      4413  0.0  0.2   7004  2236 pts/0    S+   15:59   0:00 grep java"
+#     ]
+# }
+# 
+# PLAY RECAP *****************************************************************************************************************************************************
+# ec2-18-193-111-18.eu-central-1.compute.amazonaws.com : ok=8    changed=5    unreachable=0    failed=0    skipped=0    rescued=0    ignored=0   
+# ip-172-31-1-248.eu-central-1.compute.internal : ok=40   changed=11   unreachable=0    failed=0    skipped=18   rescued=0    ignored=0 
+```
+
+Make sure to open port 8080 for the web server and access the application via http://18.193.111.18:8080 from browser to make sure the application was successfuly deployed.
 
 </details>
 
