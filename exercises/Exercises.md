@@ -1377,6 +1377,47 @@ Note: MySQL application will run as 1 replica and for the Java Application you w
 
 **Solution:**
 
+**Dockerize the Java application:**\
+The Docker image of the application we want to run is `fsiegrist/fesi-repo:bootcamp-java-mysql-project-1.0` (that's how we are referencing it in `k8s-manifests/exercise-7/java-app.yaml`). Make sure this image is available in the private repository `fsiegrist/fesi-repo` on Docker-Hub. 
+
+If it's not, switch to the 'bootcamp-java-mysql' project folder, build the application using Gradle, build an amd64 image and push it to the repository using the following commands:
+```sh
+cd bootcamp-java-mysql
+./gradlew build
+docker buildx create --use
+docker login
+docker buildx build --platform linux/amd64 -t fsiegrist/fesi-repo:bootcamp-java-mysql-project-1.0 --push .
+```
+
+**Create k8s cluster:**\
+Execute the following commands to provision the AWS EKS cluster:
+```sh
+cd ex7-terraform
+terraform init
+terraform apply --auto-approve
+```
+
+**Set environment variable for accessing k8s cluster with kubectl and Ansible:**
+```sh
+aws eks update-kubeconfig --name myapp-eks-cluster
+export KUBECONFIG=~/.kube/config
+```
+
+<!-- Not needed on AWS EKS (Ingress is replaced by cloud-native LoadBalancer): Set value of the ingress host in file k8s-manifests/exercise-7/java-app-ingress.yaml, which you will use to access the java app from browser -->
+
+**Execute playbook:**\
+Execute the playbook to deploy k8s manifests (make sure you have Docker running locally when executing the playbook):
+```sh
+ansible-playbook ex7-deploy-on-k8s.yaml --extra-vars "docker_user=fsiegrist docker_pass=your-dockerhub-password"
+```
+
+**Note:** If you get an error on creating ingress component related to "nginx-controller-admission" webhook, than manually delete the ValidationWebhook and try again. To delete the ValidationWebhook:
+```sh
+kubectl get ValidatingWebhookConfiguration # gives you the name
+kubectl delete ValidatingWebhookConfiguration {name}
+```
+
+
 
 </details>
 
@@ -1392,6 +1433,23 @@ Everything works great, but the team worries about the application availability,
 
 **Solution:**
 
+**Set environment variable for accessing k8s cluster with kubectl and Ansible:**
+```sh
+aws eks update-kubeconfig --name myapp-eks-cluster
+export KUBECONFIG=~/.kube/config
+```
+
+Set value of the ingress host in file k8s-manifests/exercise-8/java-app-ingress.yaml, which you will use to access the java app from browser.
+
+Remove the currently running mysql deployment, that we created in exercise 7:
+```sh
+kubectl delete deployment mysql-deployment
+```
+
+Execute playbook to deploy the mysql chart in your already existing k8s cluster:
+```sh
+ansible-playbook ex8-deploy-on-k8s.yaml --extra-vars "docker_user=fsiegrist docker_pass=your-dockerhub-password"
+```
 
 </details>
 
