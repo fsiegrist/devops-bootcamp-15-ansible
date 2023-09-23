@@ -5,7 +5,7 @@
 This project contains [notes](./Notes.md) related to the videos in Module 15 "Configuration Management with Ansible" of Nana Janashia's [DevOps Bootcamp](https://www.techworld-with-nana.com/devops-bootcamp).
 
 ### Exercises
-It also containes [exercises](./exercises/Exercises.md) for this module.
+It also contains the [exercises](./exercises/Exercises.md) for this module.
 
 ### Demo Projects
 And finally it contains the following demo projects:
@@ -17,3 +17,5 @@ And finally it contains the following demo projects:
 - [Automate Kubernetes Deployment](./demo-projects/6-deploy-application-in-k8s/)
 - [Integrate Ansible in Jenkins CI/CD Pipeline](./demo-projects/7-ansible-integration-in-jenkins/)
 - [Ansible Roles](./demo-projects/8-ansible-roles/)
+
+<< Back to [DevOps Bootcamp Module Overview](https://github.com/fsiegrist/twn-devops-bootcamp)
