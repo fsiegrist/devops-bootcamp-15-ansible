@@ -344,6 +344,6 @@ ansible-playbook docker-deploy-with-roles.yaml
 # ec2-52-59-163-201.eu-central-1.compute.amazonaws.com : ok=14   changed=11   unreachable=0    failed=0    skipped=0    rescued=0    ignored=0
 ```
 
-You see that the output containes the role-name if a task was part of a role. Further you see WARNINGs concerning the usage of the `allow_world_readable_tmpfiles` attribute because this is a security issue. They are emitted for all tasks executed as user fesi.
+You see that the output contains the role-name if a task was part of a role. Further you see WARNINGs concerning the usage of the `allow_world_readable_tmpfiles` attribute because this is a security issue. They are emitted for all tasks executed as user fesi.
 
 Don't forget to cleanup the EC2 instance (using `terraform destroy`) when you're done.
